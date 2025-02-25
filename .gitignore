@@ -1,6 +1,7 @@
 # Ignore Python virtual environment
 venv/
 env/
+new/
 
 # Ignore system Python files
 __pycache__/
