@@ -1,0 +1,38 @@
+.btn-pvp {
+    background-color: #007bff; /* Bright Blue */
+    color: white;
+}
+
+.btn-pvai {
+    background-color: #ff7700; /* Vibrant Orange */
+    color: white;
+}
+
+.btn-aivai {
+    background-color: #00d4ff; /* Neon Cyan */
+    color: white;
+}
+#player-names {
+    font-size: 1.5rem;
+    font-weight: bold;
+    background: rgba(255, 255, 255, 0.1);
+    padding: 10px;
+    border-radius: 10px;
+    display: inline-block;
+    margin-bottom: 15px;
+    text-align: center;
+    width: 100%; /* Ensures full-width centering */
+}
+
+.board-container {
+    display: flex;
+    flex-direction: column;
+    align-items: center; /* Centers everything inside */
+    justify-content: center;
+}
+
+#player1-name, #player2-name {
+    color: #ffcc00; /* Stylish golden color */
+    font-weight: bold;
+}
+

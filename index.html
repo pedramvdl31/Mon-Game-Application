@@ -15,6 +15,11 @@
 
         <h1 class="mb-4">Welcome to Side Stack Game!</h1>
 
+        
+        <div id="system-messag-container">
+            <h2 class="mb-3" id="system-message" class="d-none"></h2>
+        </div>
+
         <div id="nameSection" class="card p-4 shadow-lg mx-auto" style="max-width: 400px;">
             <p class="mb-3">Enter your name to start:</p>
             <input type="text" id="playerName" class="form-control mb-2" placeholder="Your Name">
@@ -28,50 +33,88 @@
             <button class="btn game-mode-btn w-50 btn-aivai">AI vs AI</button>
         </div>
 
-        <div id="gameStartedScreen" class="d-none">
-            <h3>Game is started!</h3>
-            
-        </div>
-        <div class="board-container">
+        <div class="board-container d-none">
+
+            <div id="player-names" class="d-none p-3 text-center">
+                <h3><span id="player1-name"></span> 🆚 <span id="player2-name"></span></h3>
+            </div>
+
+            <div id="message" class="message"></div>
             <div id="board-container" class="board"></div>
         </div>
+
     </div>
 
     <script type="module">
-        import { createBoard, handleCellClick } from '/static/game_logic.js';
+        
+        import { handleCellClick } from '/static/game_logic.js';
+
+        const boardContainer = document.getElementById("board-container");
+        const startButton = document.getElementById("start-button");
+        const gameModeSelect = document.getElementById("game-mode-select");
 
         $(document).ready(function() {
 
-            createBoard();
-
             let playerName = "";
+            let gameStarted = false;
 
             function pollGameStatus() {
-                $.ajax({
-                    url: "/game-status",
-                    type: "GET",
-                    success: function(response) {
-                        console.log("Game Status:", response);
+    $.ajax({
+        url: "/game-status",
+        type: "GET",
+        success: function(response) {
+            console.log("Game Status:", response);
 
-                        // Handle game updates
-                        if (response.game && (response.game.players.player1 === playerName || response.game.players.player2 === playerName)) {
-                            if (response.game.game_status === "started") {
-                                gameStarted = true; // Update the variable
-                                $("#gameModes").fadeOut(500, function() {
-                                    $("#gameStartedScreen").removeClass("d-none").fadeIn(500);
-                                });
-                            }
-                        }
-
-                        // Schedule the next poll in 2 seconds
-                        setTimeout(pollGameStatus, 2000);
-                    },
-                    error: function() {
-                        console.error("Error fetching game status");
-                        setTimeout(pollGameStatus, 5000);  // Retry after 5 seconds if there's an error
-                    }
-                });
+            // Check if game exists before accessing its properties
+            if (!response.game) {
+                console.warn("No active game found.");
+                setTimeout(pollGameStatus, 2000); // Retry in 2 seconds
+                return;
             }
+
+            // Extract player names safely
+            let player1 = response.game.players?.player1 || "Waiting...";
+            let player2 = response.game.players?.player2 || "Waiting...";
+
+            // Update player name section
+            $("#player1-name").text(`Player 1: ${player1}`);
+            $("#player2-name").text(`Player 2: ${player2}`);
+
+            // Handle game updates
+            if (response.game && (response.game.players.player1 === playerName || response.game.players.player2 === playerName)) {
+                if (response.game.game_status === "started") {
+                    
+                    if (!gameStarted) {
+                        $("#system-message").fadeIn(500).text(`Another player joined. Please wait...`);
+
+                        setTimeout(() => {
+                            gameStarted = true;
+
+                            // Show player names
+                            $("#player-names").removeClass("d-none").fadeIn(800);
+
+                            createBoard(); // Create the board
+
+                            $(".board-container").removeClass("d-none").fadeIn(800); // Smooth fade-in
+
+                            $("#system-message").fadeOut(500, function () {
+                                $(this).text("Game is started!").fadeIn(800); // Update text & fade in smoothly
+                            });
+
+                        }, 1500); // Delay of 1.5 seconds
+                    }
+                }
+            }
+
+            // Schedule the next poll in 2 seconds
+            setTimeout(pollGameStatus, 2000);
+        },
+        error: function() {
+            console.error("Error fetching game status");
+            setTimeout(pollGameStatus, 5000); // Retry after 5 seconds if there's an error
+        }
+    });
+}
 
             // Start polling immediately when the page loads
             pollGameStatus();
@@ -137,7 +180,10 @@
                             $(this).hasClass("btn-pvai") ? "pvai" :
                             $(this).hasClass("btn-aivai") ? "aivsai" : "";
 
-                if(gameMode == 'pvsp') $("#gameModes").html(`<h3>Waiting for players...</h3>`)
+                if(gameMode == 'pvsp'){
+                    $("#gameModes").addClass("d-none").fadeOut(500);
+                    $("#system-message").text(`Waiting for players...`).removeClass("d-none").fadeIn(500)
+                }
                 
                 if (gameMode === "pvai") {
                     startPlayerVsAIGameInterval();
@@ -161,6 +207,24 @@
                 }
             });
 
+            function createBoard() {
+                boardContainer.innerHTML = "";
+                boardContainer.style.display = "grid";
+                boardContainer.style.gridTemplateColumns = "repeat(7, 72px)";
+                boardContainer.style.gridGap = "5px";
+
+                for (let row = 0; row < 7; row++) {
+                    for (let col = 0; col < 7; col++) {
+                        const cell = document.createElement("div");
+                        cell.classList.add("cell", "empty");
+                        cell.dataset.row = row;
+                        cell.dataset.col = col;
+                        cell.addEventListener("click", handleCellClick);
+                        boardContainer.appendChild(cell);
+                    }
+                }
+            }
+
             window.addEventListener("beforeunload", function () {
                 if (playerName) {
                     const data = JSON.stringify({ name: playerName });
@@ -173,6 +237,8 @@
                 }
             });
         });
+
+
 
     </script>
 </body>

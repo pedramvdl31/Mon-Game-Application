@@ -23,11 +23,8 @@ logging.basicConfig(level=logging.DEBUG)
 
 app = FastAPI()
 
-# Get the directory where the script is running
-BASE_DIR = os.path.dirname(os.path.abspath(__file__))
-
 # Serve static files from the root directory
-app.mount("/static", StaticFiles(directory=BASE_DIR), name="static")
+app.mount("/static", StaticFiles(directory="static"), name="static")
 
 # Get URLs from environment variables, defaulting to localhost if not set
 API_URL = os.getenv("API_URL")
