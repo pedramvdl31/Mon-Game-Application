@@ -1,0 +1,28 @@
+# Ignore Python virtual environment
+venv/
+env/
+
+# Ignore system Python files
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+
+# Ignore SQLite database and migrations (optional)
+database/*.db
+database/__pycache__/
+
+# Ignore logs and cache
+*.log
+*.sqlite3
+*.pid
+*.swp
+*.swo
+.DS_Store
+
+# Ignore VS Code & JetBrains IDE settings (optional)
+.vscode/
+.idea/
+
+# Ignore environment configuration files
+.env

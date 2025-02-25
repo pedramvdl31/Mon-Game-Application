@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Welcome to Side Stack Game!</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+</head>
+<body class="bg-dark text-white">
+    <div class="container text-center mt-5">
+        <h1 class="mb-4">Welcome to Side Stack Game!</h1>
+        
+        <div id="nameSection" class="card p-4 shadow-lg mx-auto" style="max-width: 400px;">
+            <p class="mb-3">Enter your name to start:</p>
+            <input type="text" id="playerName" class="form-control mb-2" placeholder="Your Name">
+            <button class="btn btn-primary w-100" id="storeName">Step Into the Play Arena!</button>
+        </div>
+
+        <div id="gameModes" class="mt-4 d-none">
+            <h2 class="mb-3">Choose Game Mode:</h2>
+            <button class="btn btn-default w-50 mb-2">Player vs Player</button><br>
+            <button class="btn btn-default w-50 mb-2">Player vs AI</button><br>
+            <button class="btn btn-default w-50">AI vs AI</button>
+        </div>
+    </div>
+
+    <script>
+        $(document).ready(function() {
+            $('#storeName').click(function() {
+                let playerName = $('#playerName').val().trim();
+                if (playerName === "") {
+                    alert("Please enter your name!");
+                    return;
+                }
+                
+                $.ajax({
+                    url: '/create-user',
+                    type: 'POST',
+                    contentType: 'application/json',
+                    data: JSON.stringify({ name: playerName }),
+                    success: function(response) {
+                        $('#nameSection').fadeOut(500, function() {
+                            $('#gameModes').removeClass('d-none').hide().fadeIn(500);
+                        });
+                    },
+                    error: function() {
+                        alert("Something went wrong. Try again!");
+                    }
+                });
+            });
+        });
+    </script>
+</body>
+</html>
