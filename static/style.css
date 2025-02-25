@@ -36,3 +36,13 @@
     font-weight: bold;
 }
 
+#turn-message {
+    font-size: 1.3rem;
+    font-weight: bold;
+    background: rgba(0, 255, 0, 0.2); /* Light green background */
+    padding: 10px;
+    border-radius: 10px;
+    display: inline-block;
+    margin-bottom: 10px;
+    width: 100%;
+}

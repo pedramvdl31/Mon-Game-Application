@@ -1,35 +1,9 @@
-    let gameOver = false;
-    let currentPlayer = 'x'
+
     // Initialize the board (7x7 grid)
-    const board = Array(7).fill().map(() => Array(7).fill('_'));
-
-    export function handleCellClick(event) {
-        if (gameOver) return;
-
-        const cell = event.target;
-        const row = parseInt(cell.dataset.row);
-        const col = parseInt(cell.dataset.col);
-
-        if (board[row][col] === '_') {
-        if (col === 0 || col === 6 || (col > 0 && board[row][col - 1] !== '_') || (col < 6 && board[row][col + 1] !== '_')) {
-            board[row][col] = currentPlayer;
-            cell.classList.remove("empty");
-            cell.classList.add(currentPlayer);
-            cell.textContent = currentPlayer;
-            
-            if (checkDirection(row, col)) {
-                document.getElementById("message").textContent = `${currentPlayer} wins!`;
-                gameOver = true;
-                return;
-            }
-            
-            currentPlayer = currentPlayer === 'x' ? 'o' : 'x';
-        }
-        }
-    }
+    window.board = Array(7).fill().map(() => Array(7).fill('_'));
 
     export function checkDirection(row, col) {
-        
+
         const player = board[row][col];
 
         // Check horizontal (left and right)

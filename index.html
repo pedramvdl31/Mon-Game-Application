@@ -39,6 +39,8 @@
                 <h3><span id="player1-name"></span> 🆚 <span id="player2-name"></span></h3>
             </div>
 
+            <div id="turn-message" class="d-none p-2 text-center fw-bold"></div>
+
             <div id="message" class="message"></div>
             <div id="board-container" class="board"></div>
         </div>
@@ -46,75 +48,70 @@
     </div>
 
     <script type="module">
-        
-        import { handleCellClick } from '/static/game_logic.js';
 
+        import { checkDirection } from '/static/game_logic.js';
         const boardContainer = document.getElementById("board-container");
         const startButton = document.getElementById("start-button");
         const gameModeSelect = document.getElementById("game-mode-select");
+        let playerName = "";
+        let gameStarted = false;
+        let gameOver = false;
+        let currentPlayer = 'x'
+        let player1 = "W";
+        let player2 = "";
 
         $(document).ready(function() {
 
-            let playerName = "";
-            let gameStarted = false;
-
-            function pollGameStatus() {
+function pollGameStatus() {
     $.ajax({
         url: "/game-status",
         type: "GET",
         success: function(response) {
             console.log("Game Status:", response);
 
-            // Check if game exists before accessing its properties
             if (!response.game) {
                 console.warn("No active game found.");
-                setTimeout(pollGameStatus, 2000); // Retry in 2 seconds
+                setTimeout(pollGameStatus, 2000);
                 return;
             }
 
-            // Extract player names safely
-            let player1 = response.game.players?.player1 || "Waiting...";
-            let player2 = response.game.players?.player2 || "Waiting...";
+            if(!gameOver){
+                // Store player names globally
+                player1 = response.game.players?.player1 || "Waiting...";
+                player2 = response.game.players?.player2 || "Waiting...";
 
-            // Update player name section
-            $("#player1-name").text(`Player 1: ${player1}`);
-            $("#player2-name").text(`Player 2: ${player2}`);
-
-            // Handle game updates
-            if (response.game && (response.game.players.player1 === playerName || response.game.players.player2 === playerName)) {
-                if (response.game.game_status === "started") {
-                    
-                    if (!gameStarted) {
-                        $("#system-message").fadeIn(500).text(`Another player joined. Please wait...`);
-
-                        setTimeout(() => {
-                            gameStarted = true;
-
-                            // Show player names
-                            $("#player-names").removeClass("d-none").fadeIn(800);
-
-                            createBoard(); // Create the board
-
-                            $(".board-container").removeClass("d-none").fadeIn(800); // Smooth fade-in
-
-                            $("#system-message").fadeOut(500, function () {
-                                $(this).text("Game is started!").fadeIn(800); // Update text & fade in smoothly
-                            });
-
-                        }, 1500); // Delay of 1.5 seconds
-                    }
-                }
+                // Update player name section
+                $("#player1-name").text(`Player 1: ${player1}`);
+                $("#player2-name").text(`Player 2: ${player2}`);
             }
 
-            // Schedule the next poll in 2 seconds
+            // Set initial turn message
+            updateTurnMessage();
+
+            if (response.game.game_status === "started" && !gameStarted) {
+                $("#system-message").fadeIn(500).text(`Another player joined. Please wait...`);
+
+                setTimeout(() => {
+                    gameStarted = true;
+                    $("#player-names").removeClass("d-none").fadeIn(800);
+                    $("#turn-message").removeClass("d-none").fadeIn(800);
+                    createBoard();
+                    $(".board-container").removeClass("d-none").fadeIn(800);
+                    $("#system-message").fadeOut(500, function () {
+                        $(this).text("Game is started!").fadeIn(800);
+                    });
+                }, 1500);
+            }
+
             setTimeout(pollGameStatus, 2000);
         },
         error: function() {
             console.error("Error fetching game status");
-            setTimeout(pollGameStatus, 5000); // Retry after 5 seconds if there's an error
+            setTimeout(pollGameStatus, 5000);
         }
     });
 }
+
 
             // Start polling immediately when the page loads
             pollGameStatus();
@@ -236,9 +233,43 @@
                     navigator.sendBeacon("/disconnect-user", blob);
                 }
             });
+
+            function handleCellClick(event) {
+                if (gameOver) return;
+            
+                const cell = event.target;
+                const row = parseInt(cell.dataset.row);
+                const col = parseInt(cell.dataset.col);
+            
+                if (window.board[row][col] === '_') {
+                    if (col === 0 || col === 6 || (col > 0 && window.board[row][col - 1] !== '_') || (col < 6 && window.board[row][col + 1] !== '_')) {
+                        
+                        // Place the move
+                        window.board[row][col] = currentPlayer;
+                        cell.classList.remove("empty");
+                        cell.classList.add(currentPlayer);
+                        cell.textContent = currentPlayer;
+            
+                        // Check if this move won the game
+                        if (checkDirection(row, col)) {
+                            $("#turn-message").text(`${currentPlayer} wins! 🎉`);
+                            gameOver = true;
+                            return;
+                        }
+            
+                        // Switch turns
+                        currentPlayer = currentPlayer === 'x' ? 'o' : 'x';
+            
+                    }
+                }
+            }
+
+            function updateTurnMessage() {
+                let currentTurnPlayer = (currentPlayer === 'x') ? player1 : player2;
+                $("#turn-message").text(`It's ${currentTurnPlayer}'s turn!`);
+            }
+
         });
-
-
 
     </script>
 </body>
