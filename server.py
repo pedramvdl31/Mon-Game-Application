@@ -1,5 +1,6 @@
 from fastapi import FastAPI, HTTPException, Request
 from fastapi.responses import FileResponse, JSONResponse
+from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker, Session
@@ -21,6 +22,13 @@ load_dotenv()
 logging.basicConfig(level=logging.DEBUG)
 
 app = FastAPI()
+
+# Get the directory where the script is running
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+
+# Serve static files from the root directory
+app.mount("/", StaticFiles(directory=BASE_DIR, html=True), name="static")
+
 
 # Get URLs from environment variables, defaulting to localhost if not set
 API_URL = os.getenv("API_URL")
@@ -122,3 +130,16 @@ async def disconnect_user(request: Request):
 def game_status():
     total_players = sum(1 for player in active_game["players"].values() if player is not None) if active_game else 0
     return {"game": active_game, "total_players": total_players}
+
+@app.get("/player-vs-ai-game-status")
+async def player_vs_ai_status():
+    # Provide the current state of the Player vs AI game.
+    # Include board position information if needed.
+    return 0
+
+@app.get("/ai-vs-ai-game-status")
+async def ai_vs_ai_status():
+    # Provide the current state of the AI vs AI game.
+    # Include board position information if needed.
+
+    return 0

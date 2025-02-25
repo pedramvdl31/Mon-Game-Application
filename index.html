@@ -48,8 +48,14 @@
 
     </div>
 
-    <script>
+    <script type="module" src="./game_logic.js"></script>
+
+    <script type="module">
+
         $(document).ready(function() {
+
+            createBoard();
+
             let playerName = "";
 
             function pollGameStatus() {
@@ -106,12 +112,50 @@
                 });
             });
 
+            function startPlayerVsAIGameInterval() {
+                setInterval(function() {
+                    $.ajax({
+                        url: "/player-vs-ai-game-status",
+                        type: "GET",
+                        success: function(response) {
+                            console.log("Player vs AI game status:", response);
+                            // Update the game state and board positions here if needed
+                        },
+                        error: function() {
+                            console.error("Error fetching player vs AI game status");
+                        }
+                    });
+                }, 2000);
+            }
+
+            function startAIVsAIGameInterval() {
+                setInterval(function() {
+                    $.ajax({
+                        url: "/ai-vs-ai-game-status",
+                        type: "GET",
+                        success: function(response) {
+                            console.log("AI vs AI game status:", response);
+                            // Update the game state and board positions here if needed
+                        },
+                        error: function() {
+                            console.error("Error fetching AI vs AI game status");
+                        }
+                    });
+                }, 2000);
+            }
+
             $(".game-mode-btn").click(function() {
                 let gameMode = $(this).hasClass("btn-pvp") ? "pvsp" :
                             $(this).hasClass("btn-pvai") ? "pvai" :
                             $(this).hasClass("btn-aivai") ? "aivsai" : "";
 
-                if(gameMode == 'pvsp') $("#gameModes").html(`<h3>Waiting for players...</h3>`);
+                if(gameMode == 'pvsp') $("#gameModes").html(`<h3>Waiting for players...</h3>`)
+                
+                if (gameMode === "pvai") {
+                    startPlayerVsAIGameInterval();
+                } else if (gameMode === "aivsai") {
+                    startAIVsAIGameInterval();
+                }
 
                 if (gameMode) {
                     $.ajax({
@@ -140,12 +184,7 @@
                     navigator.sendBeacon("/disconnect-user", blob);
                 }
             });
-
-            
         });
-
-
-
 
     </script>
 </body>
