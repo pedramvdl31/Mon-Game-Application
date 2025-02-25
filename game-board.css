@@ -1,0 +1,44 @@
+.board {
+    display: grid;
+    grid-template-columns: repeat(7, 72px); /* Increased cell size */
+    grid-gap: 12px; /* Increased spacing between cells */
+    justify-content: center;
+    margin: 20px auto;
+    max-width: fit-content;
+    padding: 10px;
+    background-color: #f8f9fa;
+    border-radius: 10px;
+    box-shadow: 0px 4px 10px rgba(0, 0, 0, 0.2);
+}
+
+.cell {
+    width: 72px;  /* Increased size */
+    height: 72px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    border: 2px solid #000;
+    cursor: pointer;
+    font-size: 28px;
+    font-weight: bold;
+    border-radius: 5px; /* Slight rounding */
+}
+
+.cell.empty {
+    background-color: #f0f0f0;
+}
+.cell.x {
+    background-color: red;
+    color: white;
+}
+.cell.o {
+    background-color: yellow;
+    color: black;
+}
+/* Center the board using flexbox */
+.board-container {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    width: 100%;
+}

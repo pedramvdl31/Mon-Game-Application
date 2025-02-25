@@ -27,8 +27,7 @@ app = FastAPI()
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 
 # Serve static files from the root directory
-app.mount("/", StaticFiles(directory=BASE_DIR, html=True), name="static")
-
+app.mount("/static", StaticFiles(directory=BASE_DIR), name="static")
 
 # Get URLs from environment variables, defaulting to localhost if not set
 API_URL = os.getenv("API_URL")
@@ -86,7 +85,6 @@ async def create_user(user: UserCreate):
     except Exception as e:
         logging.error(f"Error occurred while creating user: {e}")
         raise HTTPException(status_code=500, detail="Internal server error")
-    
     finally:
         db.close()
 
