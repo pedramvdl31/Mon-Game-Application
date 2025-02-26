@@ -34,7 +34,7 @@ API_URL = os.getenv("API_URL")
 DATABASE_URL = os.getenv("DATABASE_URL")
 
 if not DATABASE_URL:
-    raise ValueError("❌ DATABASE_URL is not set in .env!")
+    raise ValueError("DATABASE_URL is not set in .env!")
 
 engine = create_engine(DATABASE_URL, connect_args={"check_same_thread": False})
 SessionLocal = sessionmaker(bind=engine)
@@ -43,10 +43,12 @@ Base.metadata.create_all(bind=engine)
 # Store active games (only one active game at a time for now)
 active_game: Optional[Dict] = None
 
+# To load the .env varaibles on load for the front end
 @app.get("/config")
 def get_config():
     return {"api_url": API_URL}
 
+# The index page
 @app.get("/")
 def serve_index():
     return FileResponse("index.html")
@@ -54,13 +56,7 @@ def serve_index():
 class UserCreate(BaseModel):
     name: str
 
-class GameModeSelect(BaseModel):
-    name: str
-    game_mode: str
-
-class UserDisconnect(BaseModel):
-    name: str
-
+# route to create a user and store in the databse
 @app.post("/create-user")
 async def create_user(user: UserCreate):
     db = SessionLocal()
@@ -86,6 +82,12 @@ async def create_user(user: UserCreate):
     finally:
         db.close()
 
+
+class GameModeSelect(BaseModel):
+    name: str
+    game_mode: str
+
+# when the user has selected a game mode this is mainly used for pvsp
 @app.post("/select-game-mode")
 async def select_game_mode(selection: GameModeSelect):
     global active_game
@@ -103,6 +105,11 @@ async def select_game_mode(selection: GameModeSelect):
         }
     return {"message": "Game mode selected", "game": selection.game_mode}
 
+
+class UserDisconnect(BaseModel):
+    name: str
+
+# for when the user disconnects
 @app.post("/disconnect-user")
 async def disconnect_user(request: Request):
     global active_game
@@ -123,6 +130,14 @@ async def disconnect_user(request: Request):
 
     return {"message": "User disconnected"}
 
+# to clear the array of the game
+@app.post("/clear-game")
+async def clear_game(request: Request):
+    global active_game
+    active_game = None
+    return {"message": "Game cleared on reload"}
+
+# returning the game status periodically. I prefer socket but for this app this is a good solution
 @app.get("/game-status")
 def game_status():
     global active_game
@@ -151,22 +166,9 @@ def game_status():
     total_players = sum(1 for player in active_game["players"].values() if player is not None)
 
     return {
-        "game": active_game,  # ✅ This now includes `game_over` correctly
+        "game": active_game,  # This now includes `game_over` correctly
         "total_players": total_players
     }
-
-@app.get("/player-vs-ai-game-status")
-async def player_vs_ai_status():
-    # Provide the current state of the Player vs AI game.
-    # Include board position information if needed.
-    return 0
-
-@app.get("/ai-vs-ai-game-status")
-async def ai_vs_ai_status():
-    # Provide the current state of the AI vs AI game.
-    # Include board position information if needed.
-
-    return 0
 
 class UpdateGame(BaseModel):
     player: str  # The player making the move
@@ -177,43 +179,66 @@ class UpdateGame(BaseModel):
 async def update_game(update: UpdateGame):
     global active_game
 
+    logging.info("Received game update request.")
+
+    logging.info("Received game update request.")
+
     if not active_game:
-        raise HTTPException(status_code=400, detail="No active game.")
+        logging.error("❌ No active game found. Attempting recovery...")
+
+        # 🛠️ Attempt to restore the game from a backup if available
+        if "last_active_game" in globals() and last_active_game:
+            logging.warning("⚠️ Restoring active_game from backup.")
+            active_game = last_active_game
+        else:
+            logging.critical("🔥 Game data is completely lost! No backup available.")
+            raise HTTPException(status_code=400, detail="No active game.")
 
     if update.player not in active_game["players"].values():
+        logging.warning(f"🚨 Unauthorized player {update.player} attempted to update game.")
         raise HTTPException(status_code=403, detail="Player not part of the game.")
 
-    # ✅ Validate board structure
+    # Validate board structure
     if not isinstance(update.board, list) or len(update.board) != 7 or any(len(row) != 7 for row in update.board):
+        logging.error("❌ Invalid board format received.")
         raise HTTPException(status_code=400, detail="Invalid board format. Expected a 7x7 array.")
 
-    # ✅ Update the game board
-    active_game["board"] = update.board
+    logging.info(f"✔ Valid board update received from {update.player}")
 
-    # ✅ Store `game_over` correctly (DIRECTLY inside `active_game`)
+    # Update the game board
+    active_game["board"] = update.board
     active_game["game_over"] = update.game_over
 
-    # ✅ Switch turn only if the game is not over
-    if not update.game_over:
+    logging.info("✔ Board updated successfully.")
+
+    # Check if game is over
+    if update.game_over:
+        logging.info("🎉 Game over detected. No turn switching.")
+    else:
+        # Switch turn logic
         if update.player == active_game["players"]["player1"]:
             active_game["current_turn"] = active_game["players"]["player2"]  # Switch to Player 2
         else:
             active_game["current_turn"] = active_game["players"]["player1"]  # Switch to Player 1
 
+        logging.info(f"🔄 Turn switched to {active_game['current_turn']}")
+
     return {
         "message": "Game updated successfully",
         "board": active_game["board"],
-        "current_turn": active_game["current_turn"]
+        "current_turn": active_game["current_turn"],
+        "game_over": active_game["game_over"]
     }
-    
+
 class GameBoard(BaseModel):
     board: List[List[str]]
-    ai_symbol: str  # 'x' or 'o'
+    ai_symbol: str
 
+# returns a ai response to the input board
 @app.post("/ai-move")
 async def get_ai_move(game_board: GameBoard):
     board = game_board.board
-    ai_symbol = game_board.ai_symbol  # Get the AI's symbol ('x' or 'o')
+    ai_symbol = game_board.ai_symbol 
 
     # Ensure the board is valid
     if not isinstance(board, list) or len(board) != 7 or any(len(row) != 7 for row in board):

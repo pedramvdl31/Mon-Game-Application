@@ -97,7 +97,6 @@ def ai_make_move(board, ai_symbol):  # ✅ AI symbol is now passed dynamically
     # Make the move
     new_board, col = make_move(board, row, ai_symbol, direction)  # ✅ Uses ai_symbol
 
-    # 🛑 **Fix: Stop AI if Opponent Wins After This Move**
     if check_win(new_board, opponent):
         print(f"❌ AI ({ai_symbol}) stops: Opponent ({opponent}) has already won.")
         return new_board  
@@ -105,7 +104,7 @@ def ai_make_move(board, ai_symbol):  # ✅ AI symbol is now passed dynamically
     # Convert new board state to a string
     new_state = str(new_board)
 
-    # ✅ Reward based on AI symbol
+    # Reward based on AI symbol
     if check_win(new_board, ai_symbol):  
         reward = 10
         print(f"🎉 AI ({ai_symbol}) won! Rewarding move.")

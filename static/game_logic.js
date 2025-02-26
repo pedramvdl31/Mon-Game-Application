@@ -2,6 +2,7 @@
     // Initialize the board (7x7 grid)
     window.board = Array(7).fill().map(() => Array(7).fill('_'));
 
+    // as the name suggests checking if there was a winner
     export function checkWinner(board) {
         for (let row = 0; row < 7; row++) {
             for (let col = 0; col < 7; col++) {
