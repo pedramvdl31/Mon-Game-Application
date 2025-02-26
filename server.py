@@ -14,6 +14,7 @@ from models import User  # Import your User model
 from uuid import uuid4
 from sqlalchemy.exc import IntegrityError
 import time
+from ai_logic import ai_make_move, check_win
 
 # Load environment variables
 load_dotenv()
@@ -129,11 +130,11 @@ def game_status():
     if not active_game:
         return {
             "game": {
-                "game": None,
-                "game_status": "waiting",  # Placeholder status
+                "game_status": "waiting",
                 "players": {"player1": None, "player2": None},
                 "board": [['_' for _ in range(7)] for _ in range(7)],
-                "current_turn": None
+                "current_turn": None,
+                "game_over": False  # ✅ Default: game not over
             },
             "total_players": 0
         }
@@ -144,10 +145,13 @@ def game_status():
     if "current_turn" not in active_game:
         active_game["current_turn"] = active_game["players"]["player1"]  # Default to Player 1
 
+    if "game_over" not in active_game:
+        active_game["game_over"] = False  # Ensure game_over exists at the correct level
+
     total_players = sum(1 for player in active_game["players"].values() if player is not None)
 
     return {
-        "game": active_game,
+        "game": active_game,  # ✅ This now includes `game_over` correctly
         "total_players": total_players
     }
 
@@ -164,14 +168,10 @@ async def ai_vs_ai_status():
 
     return 0
 
-# Define the request model for updating the game
-class UpdateGame(BaseModel):
-    player: str  # The player's name making the move
-    board: List[List[str]]  # The updated 7x7 board
-
 class UpdateGame(BaseModel):
     player: str  # The player making the move
     board: List[List[str]]  # The updated board
+    game_over: bool  # New: Game over status
 
 @app.post("/update-game")
 async def update_game(update: UpdateGame):
@@ -190,14 +190,36 @@ async def update_game(update: UpdateGame):
     # ✅ Update the game board
     active_game["board"] = update.board
 
-    # ✅ Switch turn to the next player
-    if update.player == active_game["players"]["player1"]:
-        active_game["current_turn"] = active_game["players"]["player2"]  # Switch to Player 2
-    else:
-        active_game["current_turn"] = active_game["players"]["player1"]  # Switch to Player 1
+    # ✅ Store `game_over` correctly (DIRECTLY inside `active_game`)
+    active_game["game_over"] = update.game_over
+
+    # ✅ Switch turn only if the game is not over
+    if not update.game_over:
+        if update.player == active_game["players"]["player1"]:
+            active_game["current_turn"] = active_game["players"]["player2"]  # Switch to Player 2
+        else:
+            active_game["current_turn"] = active_game["players"]["player1"]  # Switch to Player 1
 
     return {
         "message": "Game updated successfully",
         "board": active_game["board"],
-        "current_turn": active_game["current_turn"]  # ✅ Return new turn info
+        "current_turn": active_game["current_turn"]
     }
+    
+class GameBoard(BaseModel):
+    board: List[List[str]]
+    ai_symbol: str  # 'x' or 'o'
+
+@app.post("/ai-move")
+async def get_ai_move(game_board: GameBoard):
+    board = game_board.board
+    ai_symbol = game_board.ai_symbol  # Get the AI's symbol ('x' or 'o')
+
+    # Ensure the board is valid
+    if not isinstance(board, list) or len(board) != 7 or any(len(row) != 7 for row in board):
+        raise HTTPException(status_code=400, detail="Invalid board format. Expected a 7x7 array.")
+
+    # AI makes a move with its assigned symbol
+    updated_board = ai_make_move(board, ai_symbol)
+
+    return {"message": "AI has moved", "board": updated_board}

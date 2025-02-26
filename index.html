@@ -28,12 +28,12 @@
 
         <div id="gameModes" class="mt-4 d-none">
             <h2 class="mb-3">Choose Game Mode:</h2>
-            <button class="btn game-mode-btn w-50 mb-2 btn-pvp">Player vs Player</button><br>
-            <button class="btn game-mode-btn w-50 mb-2 btn-pvai">Player vs AI</button><br>
-            <button class="btn game-mode-btn w-50 btn-aivai">AI vs AI</button>
+            <button class="btn game-mode-btn w-50 mb-2 btn-pvsp">Player vs Player</button><br>
+            <button class="btn game-mode-btn w-50 mb-2 btn-pvsai">Player vs AI</button><br>
+            <button class="btn game-mode-btn w-50 btn-aivsai">AI vs AI</button>
         </div>
 
-        <div class="board-container d-none">
+        <div class="board-container">
 
             <div id="player-names" class="d-none p-3 text-center">
                 <h3><span id="player1-name"></span> 🆚 <span id="player2-name"></span></h3>
@@ -42,14 +42,14 @@
             <div id="turn-message" class="d-none p-2 text-center fw-bold"></div>
 
             <div id="message" class="message"></div>
-            <div id="board-container" class="board"></div>
+            <div id="board-container" class="board d-none"></div>
         </div>
 
     </div>
 
     <script type="module">
 
-        import { checkDirection } from '/static/game_logic.js';
+        import { checkWinner } from '/static/game_logic.js';
         const boardContainer = document.getElementById("board-container");
         const startButton = document.getElementById("start-button");
         const gameModeSelect = document.getElementById("game-mode-select");
@@ -57,8 +57,9 @@
         let gameStarted = false;
         let gameOver = false;
         let currentPlayer = null
+        let isAIgame = false;
         
-        let player1 = "W";
+        let player1 = "";
         let player2 = "";
 
         let moveLock = false;
@@ -73,7 +74,7 @@
         type: "GET",
         success: function(response) {
 
-            if(gameStarted){
+            if(gameStarted && !gameOver){
                     // Determine if this user is Player 1 (x) or Player 2 (o)
                     if (response.game.players.player1 === window.username) {
                         playerSymbol = 'x';
@@ -90,16 +91,20 @@
                 $("#player1-name").text(`Player 1: ${player1}`);
                 $("#player2-name").text(`Player 2: ${player2}`);
 
-                console.log(player1, player2,response.game.current_turn,player1)
-
                 // ✅ Sync turn from the server
                 currentPlayer = response.game.current_turn === player1 ? 'x' : 'o';
 
-                updateTurnMessage();
+                // ✅ Sync game over state
+                if (response.game.game_over) {
+                    gameOver = true;
+                    $("#turn-message").text(`Game Over! ${currentPlayer === 'x' ? player1 : player2} wins! 🎉`);
+                } else {
+                    updateTurnMessage();
+                }
 
                 if (response.game.board) {
                         try {
-                            let parsedBoard = JSON.parse(JSON.stringify(response.game.board)); // Deep copy & parse
+                            let parsedBoard =response.game.board; // Deep copy & parse
 
                             if (!isBoardSame(parsedBoard, window.lastBoardState)) {
                                 moveLock = false;
@@ -133,7 +138,8 @@
                 }, 1500);
             }
 
-            setTimeout(pollGameStatus, 2000);
+            if(!gameOver)
+                setTimeout(pollGameStatus, 1000);
 
         },
         error: function() {
@@ -144,8 +150,10 @@
 }
 
 
+            if(!isAIgame){
             // Start polling immediately when the page loads
             pollGameStatus();
+            }
 
             $("#storeName").click(function() {
                 playerName = $("#playerName").val().trim();
@@ -188,37 +196,30 @@
                 }, 2000);
             }
 
-            function startAIVsAIGameInterval() {
-                setInterval(function() {
-                    $.ajax({
-                        url: "/ai-vs-ai-game-status",
-                        type: "GET",
-                        success: function(response) {
-                            console.log("AI vs AI game status:", response);
-                            // Update the game state and board positions here if needed
-                        },
-                        error: function() {
-                            console.error("Error fetching AI vs AI game status");
-                        }
-                    });
-                }, 2000);
-            }
 
-            $(".game-mode-btn").click(function() {
-                let gameMode = $(this).hasClass("btn-pvp") ? "pvsp" :
-                            $(this).hasClass("btn-pvai") ? "pvai" :
-                            $(this).hasClass("btn-aivai") ? "aivsai" : "";
+            $(".btn-pvsp").click(function() {
 
-                if(gameMode == 'pvsp'){
-                    $("#gameModes").addClass("d-none").fadeOut(500);
-                    $("#system-message").text(`Waiting for players...`).removeClass("d-none").fadeIn(500)
-                }
+                let gameMode = "pvsp"
+
+                $("#gameModes").fadeOut(500, function () {
+                    $(this).addClass("d-none");
+                });
+
+                $("#player-names").fadeIn(500, function () {
+                    $(this).removeClass("d-none");
+                });
+                $("#turn-message").fadeIn(500, function () {
+                    $(this).removeClass("d-none");
+                });
                 
-                if (gameMode === "pvai") {
-                    startPlayerVsAIGameInterval();
-                } else if (gameMode === "aivsai") {
-                    startAIVsAIGameInterval();
-                }
+                $("#board-container").fadeIn(5000, function () {
+                    $(this).removeClass("d-none");
+                });
+
+                $("#system-message").fadeOut(500, function () {
+                    $(this).text("Game is started!").fadeIn(800);
+                });
+
 
                 if (gameMode) {
                     $.ajax({
@@ -234,7 +235,57 @@
                         }
                     });
                 }
-            });
+
+                });
+
+                $(".btn-pvsai").click(function() {
+    startAIGame(window.username, "AI", false);
+});
+
+$(".btn-aivsai").click(function() {
+    startAIGame("AI 1", "AI 2", true);
+});
+
+
+            function startAIGame(player1Name, player2Name, isAIVsAI = false) {
+    player1 = player1Name;
+    player2 = player2Name;
+    currentPlayer = 'x'; // X always starts
+    playerSymbol = 'x';
+    isAIgame = true;
+    gameOver = false;
+
+    createBoard();
+
+    $("#gameModes").fadeOut(500, function () {
+        $(this).addClass("d-none");
+    });
+
+    $("#player-names").fadeIn(500, function () {
+        $(this).removeClass("d-none");
+    });
+    $("#turn-message").fadeIn(500, function () {
+        $(this).removeClass("d-none");
+    });
+
+    $("#board-container").fadeIn(500, function () {
+        $(this).removeClass("d-none");
+    });
+
+    $("#system-message").fadeOut(500, function () {
+        $(this).text("Game is started!").fadeIn(800);
+    });
+
+    $("#player1-name").text(`Player 1: ${player1}`);
+    $("#player2-name").text(`Player 2: ${player2}`);
+
+    updateTurnMessage();
+
+    if (isAIVsAI) {
+        aiVsAiTurn(); // Start AI vs AI game loop
+    }
+}
+
 
             function createBoard() {
 
@@ -296,65 +347,79 @@
             window.lastBoardState = window.board
 
             moveLock = true;
+
             // ✅ Update the board visually
             updateBoardVisuals(window.board);
+            
+            sendMoveToServer(currentPlayer, window.board, gameOver);
 
-            sendMoveToServer(currentPlayer, window.board);
-
-            if (checkDirection(row, col)) {
-                $("#turn-message").text(`${playerSymbol === 'x' ? player1 : player2} wins! 🎉`);
+            const winner = checkWinner(window.board);
+            if (winner) {
+                const winnerName = winner === 'x' ? player1 : player2; // Get correct winner
+                $("#turn-message").text(`${winnerName} wins! 🎉`);
                 gameOver = true;
                 return;
             }
+
         }
     }
 }
 
             function sendMoveToServer(player, board) {
-                $.ajax({
-                    url: "/update-game",
-                    type: "POST",
-                    contentType: "application/json",
-                    data: JSON.stringify({
-                        player: player === 'x' ? player1 : player2, // Convert 'x'/'o' to actual player names
-                        board: board
-                    }),
-                    success: function(response) {
-                        console.log("Move sent successfully:", response);
-                    },
-                    error: function() {
-                        console.error("Error sending move to server.");
-                    }
-                });
+
+                if(isAIgame){
+                    sendBoardToAI(board)
+                } else {
+                    $.ajax({
+                        url: "/update-game",
+                        type: "POST",
+                        contentType: "application/json",
+                        data: JSON.stringify({
+                            player: player === 'x' ? player1 : player2, // Convert 'x'/'o' to actual player names
+                            board: board,
+                            game_over: gameOver
+                        }),
+                        success: function(response) {
+                            console.log("Move sent successfully:", response);
+                        },
+                        error: function() {
+                            console.error("Error sending move to server.");
+                        }
+                    });
+                }
+  
             }
 
             function updateTurnMessage() {
-                let currentTurnPlayer = (currentPlayer === 'x') ? player1 : player2;
-                $("#turn-message").text(`It's ${currentTurnPlayer}'s turn!`);
-            }
+    $("#turn-message").text(`It's ${currentPlayer === 'x' ? player1 : player2}'s turn.`);
+}
+
 
             function updateBoardVisuals(board) {
-                console.log(board)
-                for (let row = 0; row < 7; row++) {
-                    for (let col = 0; col < 7; col++) {
-                        const cell = document.querySelector(`.cell[data-row='${row}'][data-col='${col}']`);
-                        
-                        if (!cell) {
-                            console.warn(`Cell at row ${row}, col ${col} not found in DOM.`);
-                            continue; // Skip if cell doesn't exist
-                        }
 
-                        if (board[row][col] !== '_') {
-                            cell.classList.remove("empty");
-                            cell.classList.add(board[row][col]); // Apply 'x' or 'o' class
-                            cell.textContent = board[row][col];
-                        } else {
-                            cell.classList.add("empty");
-                            cell.textContent = "";
-                        }
-                    }
-                }
+    for (let row = 0; row < 7; row++) {
+        for (let col = 0; col < 7; col++) {
+            const cell = document.querySelector(`.cell[data-row='${row}'][data-col='${col}']`);
+            
+            if (!cell) {
+                console.warn(`⚠️ Cell at row ${row}, col ${col} not found in DOM.`);
+                continue; // Skip if cell doesn't exist
             }
+
+            // ✅ Remove all existing classes before updating
+            cell.classList.remove("x", "o", "empty");
+
+            if (board[row][col] !== "_") {
+                cell.textContent = board[row][col]; // ✅ Display 'X' or 'O'
+                cell.classList.add(board[row][col]); // ✅ Apply the class (x or o)
+            } else {
+                cell.textContent = "";
+                cell.classList.add("empty"); // ✅ Reset empty class
+            }
+        }
+    }
+}
+
 
 
 function isBoardSame(boardA, boardB) {
@@ -370,12 +435,78 @@ function isBoardSame(boardA, boardB) {
         }
     }
 
-    
     return true; // No changes found
 }
 
+function sendBoardToAI(board, aiSymbol) {
+    moveLock = true; 
+
+    $.ajax({
+        url: "/ai-move",  // FastAPI AI move route
+        type: "POST",
+        contentType: "application/json",
+        data: JSON.stringify({ board: board, ai_symbol: aiSymbol }), // ✅ Send AI's symbol
+        success: function(response) {
+            console.log("AI Move Response Received:", response);
+
+            if (response.board) {
+                if (!gameOver) {
+                    window.board = response.board;
+                    updateBoardVisuals(window.board);
+                    moveLock = false;
+
+                    // ✅ Check winner AFTER AI move
+                    const winner = checkWinner(window.board);
+                    if (winner) {
+                        const winnerName = winner === 'x' ? player1 : player2; // Get correct winner
+                        $("#turn-message").text(`${winnerName} wins! 🎉`);
+                        gameOver = true;
+                        return;
+                    } else {
+                        updateTurnMessage();
+                    }
+                }
+            } else {
+                console.error("❌ Unexpected response format:", response);
+                moveLock = false;
+            }
+        },
+        error: function() {
+            console.error("❌ Error sending board to AI.");
+            moveLock = false; // ✅ Unlock in case of error
+        }
+    });
+}
+
+function aiVsAiTurn() {
+    if (gameOver) return; // Stop if game is over
+
+    const currentAI = currentPlayer === 'x' ? "AI 1" : "AI 2";
+    console.log(`🤖 ${currentAI} is thinking...`);
+
+    setTimeout(() => {
+        console.log(`🚀 ${currentAI} makes a move!`);
+
+        // ✅ Send the correct AI symbol ('x' or 'o')
+        sendBoardToAI(window.board, currentPlayer);
+
+        setTimeout(() => {
+            if (!gameOver) {
+                currentPlayer = currentPlayer === 'x' ? 'o' : 'x';
+                updateTurnMessage();
+                aiVsAiTurn(); // Continue AI vs AI loop
+            }
+        }, 200); // Small delay before switching turns
+
+    }, 400); // ⏳ 1.5-second delay before making the AI move
+}
+
+
 
         });
+
+
+
 
     </script>
 </body>

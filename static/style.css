@@ -1,17 +1,33 @@
-.btn-pvp {
+/* Player vs Player Button (Darker on Hover) */
+.btn-pvsp {
     background-color: #007bff; /* Bright Blue */
     color: white;
+    transition: background-color 0.2s ease-in-out;
+}
+.btn-pvsp:hover {
+    background-color: #005bb5; /* Darker blue */
 }
 
-.btn-pvai {
+/* Player vs AI Button (Darker on Hover) */
+.btn-pvsai {
     background-color: #ff7700; /* Vibrant Orange */
     color: white;
+    transition: background-color 0.2s ease-in-out;
+}
+.btn-pvsai:hover {
+    background-color: #cc5f00; /* Darker orange */
 }
 
-.btn-aivai {
+/* AI vs AI Button (Darker on Hover) */
+.btn-aivsai {
     background-color: #00d4ff; /* Neon Cyan */
     color: white;
+    transition: background-color 0.2s ease-in-out;
 }
+.btn-aivsai:hover {
+    background-color: #009bb3; /* Darker cyan */
+}
+
 #player-names {
     font-size: 1.5rem;
     font-weight: bold;
