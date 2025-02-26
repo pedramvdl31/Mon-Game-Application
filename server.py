@@ -97,7 +97,8 @@ async def select_game_mode(selection: GameModeSelect):
         active_game = {
             "game": selection.game_mode,
             "game_status": "waiting",
-            "players": {"player1": selection.name, "player2": None}
+            "players": {"player1": selection.name, "player2": None},
+            "board": [['_' for _ in range(7)] for _ in range(7)]  # ✅ Initialize the board
         }
     return {"message": "Game mode selected", "game": selection.game_mode}
 
@@ -123,8 +124,32 @@ async def disconnect_user(request: Request):
 
 @app.get("/game-status")
 def game_status():
-    total_players = sum(1 for player in active_game["players"].values() if player is not None) if active_game else 0
-    return {"game": active_game, "total_players": total_players}
+    global active_game
+    
+    if not active_game:
+        return {
+            "game": {
+                "game": None,
+                "game_status": "waiting",  # Placeholder status
+                "players": {"player1": None, "player2": None},
+                "board": [['_' for _ in range(7)] for _ in range(7)],
+                "current_turn": None
+            },
+            "total_players": 0
+        }
+
+    if "board" not in active_game or active_game["board"] is None:
+        active_game["board"] = [['_' for _ in range(7)] for _ in range(7)]  # Ensure board exists
+
+    if "current_turn" not in active_game:
+        active_game["current_turn"] = active_game["players"]["player1"]  # Default to Player 1
+
+    total_players = sum(1 for player in active_game["players"].values() if player is not None)
+
+    return {
+        "game": active_game,
+        "total_players": total_players
+    }
 
 @app.get("/player-vs-ai-game-status")
 async def player_vs_ai_status():
@@ -138,3 +163,41 @@ async def ai_vs_ai_status():
     # Include board position information if needed.
 
     return 0
+
+# Define the request model for updating the game
+class UpdateGame(BaseModel):
+    player: str  # The player's name making the move
+    board: List[List[str]]  # The updated 7x7 board
+
+class UpdateGame(BaseModel):
+    player: str  # The player making the move
+    board: List[List[str]]  # The updated board
+
+@app.post("/update-game")
+async def update_game(update: UpdateGame):
+    global active_game
+
+    if not active_game:
+        raise HTTPException(status_code=400, detail="No active game.")
+
+    if update.player not in active_game["players"].values():
+        raise HTTPException(status_code=403, detail="Player not part of the game.")
+
+    # ✅ Validate board structure
+    if not isinstance(update.board, list) or len(update.board) != 7 or any(len(row) != 7 for row in update.board):
+        raise HTTPException(status_code=400, detail="Invalid board format. Expected a 7x7 array.")
+
+    # ✅ Update the game board
+    active_game["board"] = update.board
+
+    # ✅ Switch turn to the next player
+    if update.player == active_game["players"]["player1"]:
+        active_game["current_turn"] = active_game["players"]["player2"]  # Switch to Player 2
+    else:
+        active_game["current_turn"] = active_game["players"]["player1"]  # Switch to Player 1
+
+    return {
+        "message": "Game updated successfully",
+        "board": active_game["board"],
+        "current_turn": active_game["current_turn"]  # ✅ Return new turn info
+    }

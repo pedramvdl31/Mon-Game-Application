@@ -56,37 +56,67 @@
         let playerName = "";
         let gameStarted = false;
         let gameOver = false;
-        let currentPlayer = 'x'
+        let currentPlayer = null
+        
         let player1 = "W";
         let player2 = "";
 
+        let moveLock = false;
+
         $(document).ready(function() {
 
-function pollGameStatus() {
+            let playerSymbol = null; // 'x' for Player 1, 'o' for Player 2
+
+            function pollGameStatus() {
     $.ajax({
         url: "/game-status",
         type: "GET",
         success: function(response) {
-            console.log("Game Status:", response);
 
-            if (!response.game) {
-                console.warn("No active game found.");
-                setTimeout(pollGameStatus, 2000);
-                return;
-            }
+            if(gameStarted){
+                    // Determine if this user is Player 1 (x) or Player 2 (o)
+                    if (response.game.players.player1 === window.username) {
+                        playerSymbol = 'x';
+                    } else if (response.game.players.player2 === window.username) {
+                        playerSymbol = 'o';
+                    } else {
+                        console.warn("This user is not part of the game.");
+                        return;
+                    }
 
-            if(!gameOver){
-                // Store player names globally
-                player1 = response.game.players?.player1 || "Waiting...";
-                player2 = response.game.players?.player2 || "Waiting...";
+                player1 = response.game.players?.player1;
+                player2 = response.game.players?.player2;
 
-                // Update player name section
                 $("#player1-name").text(`Player 1: ${player1}`);
                 $("#player2-name").text(`Player 2: ${player2}`);
-            }
 
-            // Set initial turn message
-            updateTurnMessage();
+                console.log(player1, player2,response.game.current_turn,player1)
+
+                // ✅ Sync turn from the server
+                currentPlayer = response.game.current_turn === player1 ? 'x' : 'o';
+
+                updateTurnMessage();
+
+                if (response.game.board) {
+                        try {
+                            let parsedBoard = JSON.parse(JSON.stringify(response.game.board)); // Deep copy & parse
+
+                            if (!isBoardSame(parsedBoard, window.lastBoardState)) {
+                                moveLock = false;
+                                window.board = parsedBoard;
+                                window.lastBoardState = parsedBoard;
+                                updateBoardVisuals(parsedBoard);
+                                console.log('board is changed');
+                                
+                            } else{
+                                console.log('board is SAME');
+                            }
+
+                        } catch (error) {
+                            console.error("Error parsing board data from server:", error);
+                        }
+                }
+            }
 
             if (response.game.game_status === "started" && !gameStarted) {
                 $("#system-message").fadeIn(500).text(`Another player joined. Please wait...`);
@@ -104,6 +134,7 @@ function pollGameStatus() {
             }
 
             setTimeout(pollGameStatus, 2000);
+
         },
         error: function() {
             console.error("Error fetching game status");
@@ -130,6 +161,7 @@ function pollGameStatus() {
                     data: JSON.stringify({ name: playerName }),
                     success: function(response) {
                         console.log(response);
+                        window.username = playerName
                         $("#nameSection").fadeOut(500, function() {
                             $("#gameModes").removeClass("d-none").fadeIn(500);
                         });
@@ -205,6 +237,9 @@ function pollGameStatus() {
             });
 
             function createBoard() {
+
+                window.lastBoardState = window.board
+
                 boardContainer.innerHTML = "";
                 boardContainer.style.display = "grid";
                 boardContainer.style.gridTemplateColumns = "repeat(7, 72px)";
@@ -235,39 +270,110 @@ function pollGameStatus() {
             });
 
             function handleCellClick(event) {
-                if (gameOver) return;
+    if (gameOver) return;
+
+        // ✅ Prevent clicking while waiting for server response
+        if (moveLock) {
+            console.warn("Move locked! Waiting for server response...");
+            return;
+        }
+
+    const cell = event.target;
+    const row = parseInt(cell.dataset.row);
+    const col = parseInt(cell.dataset.col);
+
+    if (playerSymbol !== currentPlayer) {
+        console.warn(`Not your turn! It's ${currentPlayer === 'x' ? player1 : player2}'s turn.`);
+        $("#turn-message").text(`Wait! It's ${currentPlayer === 'x' ? player1 : player2}'s turn.`);
+        return;
+    }
+
+    if (window.board[row][col] === '_') {
+        if (col === 0 || col === 6 || (col > 0 && window.board[row][col - 1] !== '_') || (col < 6 && window.board[row][col + 1] !== '_')) {
             
-                const cell = event.target;
-                const row = parseInt(cell.dataset.row);
-                const col = parseInt(cell.dataset.col);
-            
-                if (window.board[row][col] === '_') {
-                    if (col === 0 || col === 6 || (col > 0 && window.board[row][col - 1] !== '_') || (col < 6 && window.board[row][col + 1] !== '_')) {
-                        
-                        // Place the move
-                        window.board[row][col] = currentPlayer;
-                        cell.classList.remove("empty");
-                        cell.classList.add(currentPlayer);
-                        cell.textContent = currentPlayer;
-            
-                        // Check if this move won the game
-                        if (checkDirection(row, col)) {
-                            $("#turn-message").text(`${currentPlayer} wins! 🎉`);
-                            gameOver = true;
-                            return;
-                        }
-            
-                        // Switch turns
-                        currentPlayer = currentPlayer === 'x' ? 'o' : 'x';
-            
+            window.board[row][col] = currentPlayer;
+
+            window.lastBoardState = window.board
+
+            moveLock = true;
+            // ✅ Update the board visually
+            updateBoardVisuals(window.board);
+
+            sendMoveToServer(currentPlayer, window.board);
+
+            if (checkDirection(row, col)) {
+                $("#turn-message").text(`${playerSymbol === 'x' ? player1 : player2} wins! 🎉`);
+                gameOver = true;
+                return;
+            }
+        }
+    }
+}
+
+            function sendMoveToServer(player, board) {
+                $.ajax({
+                    url: "/update-game",
+                    type: "POST",
+                    contentType: "application/json",
+                    data: JSON.stringify({
+                        player: player === 'x' ? player1 : player2, // Convert 'x'/'o' to actual player names
+                        board: board
+                    }),
+                    success: function(response) {
+                        console.log("Move sent successfully:", response);
+                    },
+                    error: function() {
+                        console.error("Error sending move to server.");
                     }
-                }
+                });
             }
 
             function updateTurnMessage() {
                 let currentTurnPlayer = (currentPlayer === 'x') ? player1 : player2;
                 $("#turn-message").text(`It's ${currentTurnPlayer}'s turn!`);
             }
+
+            function updateBoardVisuals(board) {
+                console.log(board)
+                for (let row = 0; row < 7; row++) {
+                    for (let col = 0; col < 7; col++) {
+                        const cell = document.querySelector(`.cell[data-row='${row}'][data-col='${col}']`);
+                        
+                        if (!cell) {
+                            console.warn(`Cell at row ${row}, col ${col} not found in DOM.`);
+                            continue; // Skip if cell doesn't exist
+                        }
+
+                        if (board[row][col] !== '_') {
+                            cell.classList.remove("empty");
+                            cell.classList.add(board[row][col]); // Apply 'x' or 'o' class
+                            cell.textContent = board[row][col];
+                        } else {
+                            cell.classList.add("empty");
+                            cell.textContent = "";
+                        }
+                    }
+                }
+            }
+
+
+function isBoardSame(boardA, boardB) {
+    if (!boardA || !boardB) return false; // Ensure both boards exist
+    if (boardA.length !== boardB.length) return false; // Ensure size matches
+
+    for (let row = 0; row < boardA.length; row++) {
+        if (!boardA[row] || !boardB[row]) return false; // Ensure rows exist
+        for (let col = 0; col < boardA[row].length; col++) {
+            if (boardA[row][col] !== boardB[row][col]) {
+                return false; // A change was detected
+            }
+        }
+    }
+
+    
+    return true; // No changes found
+}
+
 
         });
 
