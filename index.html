@@ -186,6 +186,8 @@
                         //a window variable for the players name.
                         window.username = playerName
 
+                        $("#nameSection").addClass("d-none")
+
                         // if the user clicked on the player vs ai mode
                         if(gameMode == "pvsai"){
                             startAIGame(window.username, "AI", false);
@@ -195,7 +197,6 @@
                         }
 
                         //pretty obvious :)
-                        $("#nameSection").addClass("d-none")
                         $("#system-message").text(`Waiting for players...`).removeClass("d-none")
 
                         //sending an ajax telling server that the player wants to join a player vs player
@@ -483,9 +484,9 @@
                         if (!gameOver) {
                             aiVsAiTurn(); // Continue AI vs AI loop
                         }
-                    }, 200); // Small delay before switching turns
+                    }, 400); // Small delay before switching turns
 
-                }, 400); // ⏳ 1.5-second delay before making the AI move
+                }, 700); // ⏳ 1.5-second delay before making the AI move
             }
 
             // This is the initial function that create and paint the board on the screen
