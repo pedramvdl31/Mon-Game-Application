@@ -20,7 +20,7 @@
             <h2 class="mb-3" id="system-message" class="d-none"></h2>
         </div>
 
-        <div id="nameSection" class="card p-4 shadow-lg mx-auto" style="max-width: 400px;">
+        <div id="nameSection" class=" card p-4 shadow-lg mx-auto" style="max-width: 400px;">
             <p class="mb-3">Enter your name to start:</p>
             <input type="text" id="playerName" class="form-control mb-2" placeholder="Your Name">
             <button class="btn btn-primary w-100" id="storeName">Step Into the Play Arena!</button>
@@ -131,7 +131,9 @@
                     $("#player-names").removeClass("d-none").fadeIn(800);
                     $("#turn-message").removeClass("d-none").fadeIn(800);
                     createBoard();
-                    $(".board-container").removeClass("d-none").fadeIn(800);
+                    $("#board-container").fadeIn(500, function () {
+                        $(this).removeClass("d-none");
+                    });
                     $("#system-message").fadeOut(500, function () {
                         $(this).text("Game is started!").fadeIn(800);
                     });
@@ -201,25 +203,8 @@
 
                 let gameMode = "pvsp"
 
-                $("#gameModes").fadeOut(500, function () {
-                    $(this).addClass("d-none");
-                });
-
-                $("#player-names").fadeIn(500, function () {
-                    $(this).removeClass("d-none");
-                });
-                $("#turn-message").fadeIn(500, function () {
-                    $(this).removeClass("d-none");
-                });
-                
-                $("#board-container").fadeIn(5000, function () {
-                    $(this).removeClass("d-none");
-                });
-
-                $("#system-message").fadeOut(500, function () {
-                    $(this).text("Game is started!").fadeIn(800);
-                });
-
+                $("#gameModes").addClass("d-none").fadeOut(500);
+                $("#system-message").text(`Waiting for players...`).removeClass("d-none").fadeIn(500)
 
                 if (gameMode) {
                     $.ajax({
@@ -239,12 +224,12 @@
                 });
 
                 $(".btn-pvsai").click(function() {
-    startAIGame(window.username, "AI", false);
-});
+                        startAIGame(window.username, "AI", false);
+                    });
 
-$(".btn-aivsai").click(function() {
-    startAIGame("AI 1", "AI 2", true);
-});
+                    $(".btn-aivsai").click(function() {
+                        startAIGame("AI 1", "AI 2", true);
+                    });
 
 
             function startAIGame(player1Name, player2Name, isAIVsAI = false) {
@@ -350,16 +335,15 @@ $(".btn-aivsai").click(function() {
 
             // ✅ Update the board visually
             updateBoardVisuals(window.board);
-            
-            sendMoveToServer(currentPlayer, window.board, gameOver);
 
             const winner = checkWinner(window.board);
             if (winner) {
                 const winnerName = winner === 'x' ? player1 : player2; // Get correct winner
                 $("#turn-message").text(`${winnerName} wins! 🎉`);
                 gameOver = true;
-                return;
             }
+
+            sendMoveToServer(currentPlayer, window.board, gameOver);
 
         }
     }
@@ -502,10 +486,7 @@ function aiVsAiTurn() {
 }
 
 
-
         });
-
-
 
 
     </script>
