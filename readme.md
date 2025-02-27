@@ -68,6 +68,10 @@ To play, simply visit: **[https://my-mon-app.webprinciples.com/](https://my-mon-
 ├── static/             # Contains all static files (CSS, JS, images, etc.)
 ├── .env/               # Virtual environment directory (not included in repo)
 ```
+## Architecture
+<p align="left">
+  <img src="gameflowchart.jpeg" alt="Player vs Player Gameplay" width="70%">
+</p>
 
 ## Screenshots & GIFs
 (*Include GIFs or Screenshots Here*)
