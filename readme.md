@@ -61,6 +61,7 @@ To play, simply visit: **[https://my-mon-app.webprinciples.com/](https://my-mon-
 ├── ai_logic.py          # Q-learning algorithm for AI decision-making
 ├── database/           # Contains the SQLite database
 │   ├── game_data.db    # SQLite database file (not actively used)
+│   models.py           # Database design schema
 ├── q_table.pkl         # Machine learning trained data (Q-learning)
 ├── requirements.txt    # List of frozen Python package dependencies
 ├── server.py           # Main FastAPI application server
