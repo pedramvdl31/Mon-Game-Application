@@ -44,9 +44,10 @@
 - **Basic Messaging System**: The messaging feature in the front end requires a proper function for structured messages.
 
 ## Future Enhancements
+- Restructure the code using a framework to improve code quality, reduce redundancy, enhance structure, and facilitate better collaboration.
 - Implement **WebSockets** for improved real-time communication.
 - Expand multiplayer support beyond **two players**.
-- Improve **front-end messaging system** for a better user experience.
+- Create a **front-end messaging system** for a better user experience.
 - Enhance AI strategies for a more challenging gameplay experience.
 - Integrate **user authentication and leaderboards** for tracking performance.
 
