@@ -12,7 +12,6 @@
 - **Intelligent AI** powered by Q-learning
 - **Web-hosted Application** ([Visit the Game Here](https://my-mon-app.webprinciples.com/))
 - **Secure & Scalable Hosting** (AWS EC2 with Apache and SQLite)
-- **Sleek UI/UX** designed for an immersive experience
 - **Git & Gitignore Configured** for seamless local and server syncing
 
 ## Technology Stack
