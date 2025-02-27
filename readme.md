@@ -70,7 +70,7 @@ To play, simply visit: **[https://my-mon-app.webprinciples.com/](https://my-mon-
 ```
 ## Architecture
 <p align="left">
-  <img src="gameflowchart.jpeg" alt="Player vs Player Gameplay" width="70%">
+  <img src="gameflowchart.jpeg" alt="Player vs Player Gameplay" width="40%">
 </p>
 
 ## Screenshots & GIFs
