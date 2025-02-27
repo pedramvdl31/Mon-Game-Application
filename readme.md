@@ -37,6 +37,20 @@
 This project is hosted online, and no local installation is required.
 To play, simply visit: **[https://my-mon-app.webprinciples.com/](https://my-mon-app.webprinciples.com/)**
 
+## Project Structure
+
+```plaintext
+.
+├── ai_logic.py          # Q-learning algorithm for AI decision-making
+├── database/           # Contains the SQLite database
+│   ├── game_data.db    # SQLite database file (not actively used)
+├── q_table.pkl         # Machine learning trained data (Q-learning)
+├── requirements.txt    # List of frozen Python package dependencies
+├── server.py           # Main FastAPI application server
+├── static/             # Contains all static files (CSS, JS, images, etc.)
+├── .env/               # Virtual environment directory (not included in repo)
+```
+
 ## Screenshots & GIFs
 (*Include GIFs or Screenshots Here*)
 
