@@ -3,6 +3,23 @@
 ## Overview
 **Mon******** is a web-based game built using FastAPI, JavaScript, HTML, CSS, and jQuery. It offers multiple game modes, including **Player vs Player, Player vs AI, and AI vs Player**, powered by Q-learning for AI decision-making. The game is hosted on **AWS EC2** with an **Apache server** and **SQLite database**, ensuring smooth performance and scalability.
 
+## Demo GIFs
+
+### AI vs AI
+<p align="left">
+  <img src="AIvsAI.gif" alt="AI vs AI Gameplay" width="70%">
+</p>
+
+### Player vs AI
+<p align="left">
+  <img src="PvsAI.gif" alt="Player vs AI Gameplay" width="70%">
+</p>
+
+### Player vs Player
+<p align="left">
+  <img src="PvsP.gif" alt="Player vs Player Gameplay" width="70%">
+</p>
+
 ## Features
 - **Three Game Modes**:
   - Player vs Player
