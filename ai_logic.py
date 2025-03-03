@@ -10,13 +10,16 @@ EMPTY = "_"
 ALPHA = 0.5  # Learning rate
 GAMMA = 0.9  # Discount factor
 
-# Function to check for a win
+# Function to check if any side has won yet
 def check_win(board, player):
+
+    # Horizontal
     for row in range(ROWS):
         for col in range(COLS - 3):
             if all(board[row][col + i] == player for i in range(4)):
                 return True
 
+    # Vertical
     for col in range(COLS):
         for row in range(ROWS - 3):
             if all(board[row + i][col] == player for i in range(4)):
@@ -26,7 +29,7 @@ def check_win(board, player):
         for col in range(COLS - 3):
             if all(board[row + i][col + i] == player for i in range(4)):
                 return True
-
+                
     for row in range(3, ROWS):
         for col in range(COLS - 3):
             if all(board[row - i][col + i] == player for i in range(4)):
@@ -50,16 +53,15 @@ def make_move(board, row, player, direction):
     return board, None  
 
 # AI move using Q-learning
-def ai_make_move(board, ai_symbol):  # ✅ AI symbol is now passed dynamically
+def ai_make_move(board, ai_symbol):
     global Q_TABLE
     state = str(board)
 
-    # ✅ Determine the opponent symbol dynamically
+    # Get the opponent symbol based on the function's input
     opponent = "x" if ai_symbol == "o" else "o"
 
-    # 🛑 **Fix: Stop AI if Opponent Has Already Won**
     if check_win(board, opponent):
-        print(f"❌ AI ({ai_symbol}) stops: Opponent ({opponent}) has already won.")
+        print(f"AI ({ai_symbol}) stops: Opponent ({opponent}) has already won.")
         return board  
 
     # Load Q-table if it exists
@@ -95,10 +97,10 @@ def ai_make_move(board, ai_symbol):  # ✅ AI symbol is now passed dynamically
     row, direction = action[1], action[0]
 
     # Make the move
-    new_board, col = make_move(board, row, ai_symbol, direction)  # ✅ Uses ai_symbol
+    new_board, col = make_move(board, row, ai_symbol, direction)
 
     if check_win(new_board, opponent):
-        print(f"❌ AI ({ai_symbol}) stops: Opponent ({opponent}) has already won.")
+        print(f"AI ({ai_symbol}) stops: Opponent ({opponent}) has already won.")
         return new_board  
 
     # Convert new board state to a string
@@ -107,10 +109,10 @@ def ai_make_move(board, ai_symbol):  # ✅ AI symbol is now passed dynamically
     # Reward based on AI symbol
     if check_win(new_board, ai_symbol):  
         reward = 10
-        print(f"🎉 AI ({ai_symbol}) won! Rewarding move.")
+        print(f"AI ({ai_symbol}) won! Rewarding move.")
     elif check_win(new_board, opponent):  
         reward = -10
-        print(f"😞 AI ({ai_symbol}) lost. Penalizing move.")
+        print(f"AI ({ai_symbol}) lost. Penalizing move.")
     else:
         reward = -1  
 
